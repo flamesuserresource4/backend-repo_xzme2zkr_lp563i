@@ -1,48 +1,81 @@
 """
 Database Schemas
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+LearnHub: A digital marketplace for student-made study materials and peer tutoring
+Each Pydantic model maps to a MongoDB collection with the lowercase class name.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Literal
 
-# Example schemas (replace with your own):
+# Users can be added later if needed
 
-class User(BaseModel):
+class Material(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Student-made academic materials for sale or free download
+    Collection: "material"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    title: str = Field(..., description="Material title")
+    description: Optional[str] = Field(None, description="Short description")
+    course: Literal[
+        "Information Technology",
+        "Electrical Engineering",
+        "Civil Engineering",
+        "Business Administration",
+        "Education",
+        "Nursing",
+        "Accountancy",
+        "Hospitality Management",
+    ] = Field(..., description="Course/Program category")
+    subject: str = Field(..., description="Subject name, e.g., Data Structures")
+    type: Literal["Reviewer", "Class Notes", "Handout", "Problem Set", "Cheat Sheet"] = Field(
+        ..., description="Type of material"
+    )
+    price: float = Field(0, ge=0, description="Price in PHP; 0 for free")
+    author_name: str = Field(..., description="Name of the student author")
+    university: str = Field("Pamantasan ng Lungsod ng Valenzuela", description="Institution")
+    file_url: Optional[str] = Field(None, description="Link to file storage (placeholder/demo)")
+    rating: Optional[float] = Field(4.8, ge=0, le=5, description="Average rating")
+    downloads: Optional[int] = Field(0, ge=0, description="Download count")
 
-class Product(BaseModel):
+
+class Tutor(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Peer tutors available for one-on-one or group sessions
+    Collection: "tutor"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    name: str
+    course: Literal[
+        "Information Technology",
+        "Electrical Engineering",
+        "Civil Engineering",
+        "Business Administration",
+        "Education",
+        "Nursing",
+        "Accountancy",
+        "Hospitality Management",
+    ]
+    subjects: List[str] = Field(default_factory=list, description="Subjects tutored")
+    rate_per_hour: float = Field(..., ge=0, description="Hourly rate in PHP")
+    modes: List[Literal["One-on-One", "Group"]] = Field(default_factory=lambda: ["One-on-One"]) 
+    bio: Optional[str] = None
+    availability: Optional[List[str]] = Field(
+        default_factory=list, description="Simple list of available timeslots (e.g., Wed 7-9pm)"
+    )
+    rating: Optional[float] = Field(4.9, ge=0, le=5)
 
-# Add your own schemas here:
-# --------------------------------------------------
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Booking(BaseModel):
+    """
+    Tutoring session bookings
+    Collection: "booking"
+    """
+    tutor_id: str = Field(..., description="Mongo _id of tutor as string")
+    student_name: str
+    student_email: str
+    mode: Literal["One-on-One", "Group"]
+    session_datetime: str = Field(..., description="ISO or human-readable for demo")
+    duration_hours: float = Field(1.0, gt=0)
+    group_size: Optional[int] = Field(None, ge=2, description="If group session")
+    notes: Optional[str] = None
+    status: Literal["pending", "confirmed", "cancelled"] = Field("pending")
